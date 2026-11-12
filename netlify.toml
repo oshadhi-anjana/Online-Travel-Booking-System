@@ -1,0 +1,10 @@
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "build"
+
+# React Router routes must resolve to the single-page application.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
