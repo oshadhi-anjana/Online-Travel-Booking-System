@@ -1,4 +1,4 @@
-const MAX_SLIP_BYTES = 5 * 1024 * 1024;
+const MAX_SLIP_BYTES = 4 * 1024 * 1024;
 function slipType(buffer) {
   if (!Buffer.isBuffer(buffer) || !buffer.length || buffer.length > MAX_SLIP_BYTES) return null;
   if (buffer.length >= 8 && buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) return { mime: 'image/png', extension: 'png' };
