@@ -3,7 +3,7 @@ const User=require('../models/user');
 const bcrypt=require('bcrypt');
 const jwt=require('jsonwebtoken');
 const {wrap}=require('../middleware/errors');
-const safe=u=>({_id:u._id,username:u.username,email:u.email,contact:u.contact,location:u.location});
+const safe=u=>({_id:u._id,username:u.username,email:u.email,contact:u.contact,location:u.location,role:u.role||'user'});
 const session=u=>({user:safe(u),token:jwt.sign({id:String(u._id)},process.env.SECRET_KEY,{expiresIn:'1d'})});
 const validPassword=p=>typeof p==='string'&&p.length>=8&&Buffer.byteLength(p)<=72;
 router.post('/add',wrap(async(req,res)=>{const {username,contact,location,email,password}=req.body;if(typeof email!=='string'||!require('validator').isEmail(email)||!validPassword(password))return res.status(400).json({message:'Enter a valid email and a password of at least 8 characters (maximum 72 bytes).'});const u=await User.create({username,contact,location,email,password});res.status(201).json(session(u));}));
