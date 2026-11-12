@@ -1,46 +1,7 @@
 const mongoose = require('mongoose');
-const bcrypt = require("bcrypt");
-
-const Schema = mongoose.Schema;
-const userSchema = new Schema({
-    username:{
-        type: String,
-        required: true,
-        unique: true
-    },
-    contact:{
-        type: String,
-        required: true,
-    },
-    location:{
-        type: String,
-        required: true,
-    },
-    email:{
-        type:String,
-        required: true,
-        unique:true,
-    },
-    password:{
-        type:String,
-        required:true
-    }
-})
-
-//this function run before saving data to database
-userSchema.pre("save", async function(next){
-
-    //hashing the password
-    //checking if the password is already hashed
-    if (!this.isModified("password")){
-        next();
-    }
-
-    //hashing the with difficulty level 12
-    this.password = await bcrypt.hash(this.password, 12);
-    next();
-})
-
-const Users = new mongoose.model("Users", userSchema);
-
-module.exports = Users;
+const bcrypt = require('bcrypt');
+const schema = new mongoose.Schema({
+username: {type:String,required:true,trim:true,maxlength:80}, contact:{type:String,required:true,trim:true,maxlength:30}, location:{type:String,required:true,trim:true,maxlength:120}, email:{type:String,required:true,unique:true,lowercase:true,trim:true}, password:{type:String,required:true,select:false}
+},{timestamps:true});
+schema.pre('save',async function(){if(this.isModified('password')) this.password=await bcrypt.hash(this.password,12);});
+module.exports=mongoose.model('Users',schema);

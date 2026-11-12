@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import {render, screen, fireEvent, waitFor, act} from '@testing-library/react';
+import {MemoryRouter} from 'react-router-dom';
 import App from './App';
-
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
-});
+const trips=[{id:'ella',name:'Ella & the hill country',region:'Uva Province',category:'Nature',days:3,price:24500,image:'/images/feedbackIMG.jpeg',description:'A beautiful hill escape.',highlights:['Tea walk']},{id:'mirissa',name:'Mirissa escape',region:'Southern Province',category:'Beach',days:3,price:22000,image:'/images/feedbackIMG.jpeg',description:'A coastal escape.',highlights:['Beach']}];
+beforeEach(()=>{localStorage.clear();window.scrollTo=jest.fn();global.fetch=jest.fn(async()=>({ok:true,json:async()=>trips}));});
+test('home shows navigation, destinations and footer',async()=>{render(<MemoryRouter><App/></MemoryRouter>);expect(screen.getByRole('heading',{name:/a little escape/i,level:1})).toBeInTheDocument();expect(await screen.findByRole('heading',{name:'Mirissa escape'})).toBeInTheDocument();expect(screen.getByRole('navigation',{name:'Main navigation'})).toBeInTheDocument();expect(screen.getByText(/All prices are in Sri Lankan rupees/)).toBeInTheDocument();});
+test('destination category filters results',async()=>{render(<MemoryRouter initialEntries={['/destinations']}><App/></MemoryRouter>);await screen.findByRole('heading',{name:'Mirissa escape'});fireEvent.click(screen.getByRole('button',{name:'Nature'}));expect(screen.getByRole('heading',{name:'Ella & the hill country'})).toBeInTheDocument();expect(screen.queryByRole('heading',{name:'Mirissa escape'})).not.toBeInTheDocument();});
+test('protected bookings redirect to login',async()=>{render(<MemoryRouter initialEntries={['/bookings']}><App/></MemoryRouter>);expect(await screen.findByRole('heading',{name:'Good to see you again.'})).toBeInTheDocument();await act(async()=>{await Promise.resolve();});});
+test('login displays API errors',async()=>{global.fetch=jest.fn(async url=>({ok:!url.endsWith('/login'),json:async()=>url.endsWith('/login')?{message:'Email or password is incorrect.'}:trips}));render(<MemoryRouter initialEntries={['/login']}><App/></MemoryRouter>);fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'test@example.com'}});fireEvent.change(screen.getByLabelText('Password'),{target:{value:'wrong'}});fireEvent.click(screen.getByRole('button',{name:'Sign in'}));expect(await screen.findByRole('alert')).toHaveTextContent('Email or password is incorrect.');await waitFor(()=>expect(screen.getByRole('button',{name:'Sign in'})).not.toBeDisabled());});
