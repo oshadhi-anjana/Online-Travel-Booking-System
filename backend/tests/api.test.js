@@ -1,0 +1,20 @@
+const {test, before, after}=require('node:test');
+const assert=require('node:assert/strict');
+process.env.SECRET_KEY='isolated-test-secret';
+const {app}=require('../server');
+const User=require('../models/user');
+const Booking=require('../models/booking');
+const bcrypt=require('bcrypt');
+const jwt=require('jsonwebtoken');
+let server,base,hash;const id='507f1f77bcf86cd799439011';
+const token=jwt.sign({id},process.env.SECRET_KEY);
+before(async()=>{hash=await bcrypt.hash('correct-password',4);server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});base='http://127.0.0.1:'+server.address().port;});
+after(()=>new Promise(resolve=>server.close(resolve)));
+async function call(path,body,auth=true,method='POST'){const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json',...(auth?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});return {status:r.status,data:await r.json()};}
+test('unknown email and wrong password cannot sign in',async()=>{const old=User.findOne;try{User.findOne=()=>({select:async()=>({_id:id,username:'Test',password:hash})});assert.equal((await call('/user/login',{email:'test@example.com',password:'wrong'},false)).status,401);User.findOne=()=>({select:async()=>null});assert.equal((await call('/user/login',{email:'missing@example.com',password:'wrong'},false)).status,401);}finally{User.findOne=old;}});
+test('valid login returns token without password hash',async()=>{const old=User.findOne;try{User.findOne=()=>({select:async()=>({_id:id,username:'Test',email:'test@example.com',password:hash})});const r=await call('/user/login',{email:'test@example.com',password:'correct-password'},false);assert.equal(r.status,200);assert.equal(r.data.user.password,undefined);assert.equal(jwt.verify(r.data.token,process.env.SECRET_KEY).id,id);}finally{User.findOne=old;}});
+test('protected endpoints reject missing tokens and other owners',async()=>{assert.equal((await call('/bookings',{},false)).status,401);assert.equal((await call('/user/update/507f191e810c19729de860ea',{username:'Intruder'},true,'PUT')).status,403);assert.equal((await call('/feedback/add',{location:'Ella',feedback:'A wonderful trip',rating:5},false)).status,401);});
+test('booking rejects past, impossible dates and invalid traveller counts',async()=>{for(const data of [{startDate:'2020-01-01',guests:1},{startDate:'2099-02-30',guests:1},{startDate:'2099-01-01',guests:0},{startDate:'2099-01-01',guests:1.5},{startDate:'2099-01-01',guests:13}])assert.equal((await call('/bookings',{destinationId:'ella',...data})).status,400);});
+test('server calculates booking price and user identity',async()=>{const old=Booking.create;try{Booking.create=async data=>data;const r=await call('/bookings',{destinationId:'ella',startDate:'2099-01-01',guests:2,total:1,userID:'intruder'});assert.equal(r.status,201);assert.equal(r.data.total,49000);assert.equal(r.data.userID,id);}finally{Booking.create=old;}});
+test('review rejects invalid ratings before saving',async()=>{assert.equal((await call('/feedback/add',{location:'Ella',feedback:'A wonderful trip',rating:6})).status,400);});
+test('profile updates use save so password hashing hook is retained',async()=>{const old=User.findById;let saved=false;const u={_id:id,password:hash,username:'Test',save:async()=>{saved=true;}};try{User.findById=()=>({select:async()=>u});const wrong=await call('/user/update/'+id,{currentPassword:'wrong',password:'new-password'},true,'PUT');assert.equal(wrong.status,400);assert.equal(saved,false);const ok=await call('/user/update/'+id,{currentPassword:'correct-password',password:'new-password'},true,'PUT');assert.equal(ok.status,200);assert.equal(saved,true);assert.equal(ok.data.user.password,undefined);}finally{User.findById=old;}});

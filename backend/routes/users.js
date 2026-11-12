@@ -1,98 +1,17 @@
-const router = require("express").Router();
-let user = require("../models/user");
-const bcrypt = require('bcrypt');
-
-//http://localhost:8070/user/add
-router.route("/add").post((req, res) => {
-
-    const username = req.body.username;
-    const contact = req.body.contact;
-    const location = req.body.location;
-    const email = req.body.email;
-    const password = req.body.password;
-
-    const createUser = new user({
-        username,
-        contact,
-        location,
-        email,
-        password,
-    })
-
-    createUser.save().then(() => {
-        res.json("User registered")
-    }).catch((err) => {
-        console.log(err);
-    })
-
-
-})
-
-// http://localhost/8070/user/login
-router.route('/login').post(function (req, res) {
-    let email = req.body.email;
-    let password = req.body.password;
-
-    user.findOne({ email }).select("+password").then((user) => {
-        const isPasswordCorrect = bcrypt.compare(password, user.password);
-        
-        if (!isPasswordCorrect)
-            return res.status(400).json({ message: "Invalid credentials" });
-        
-        res.status(200).send({message: "Successful Login",results: user});
-    }).catch((err) => {
-        res.status(400).send({message: "User Not Found"});
-    })
-})
-
-
-
-//http://localhost/8070/user/get/:id
-router.route("/get/:id").get(async (req, res) => {
-    let userId = req.params.id;
-
-    const users = await user.findById(userId)
-        .then((user) => {
-            res.status(200).send({ status: "user fetched", user })
-        }).catch((err) => {
-            console.log(err.message);
-            res.status(500).send({ status: "error with get user", error: err.message });
-        })
-})
-
-//http://localhost:8070/user/update/:id
-router.route("/update/:id").put(async (req, res) => {
-    let userId = req.params.id;
-    const { username, contact, location, password } = req.body;
-
-    const updateUser = {
-        username,
-        contact,
-        location,
-        password
-    }
-
-    const update = await user.findByIdAndUpdate(userId, updateUser)
-        .then(() => {
-            res.status(200).send({ status: "User profile updated" })
-        }).catch((err) => {
-            console.log(err);
-            res.status(500).send({ status: "error with updating data." });
-        })
-})
-
-//http://localhost:8070/user/delete/:id
-
-router.route("/delete/:id").delete(async (req, res) => {
-    let userId = req.params.id;
-
-    await user.findByIdAndDelete(userId).then(() => {
-        res.status(200).send({ status: "User deleted" })
-    }).catch((err) => {
-        console.log(err.message);
-        res.status(500).send({ status: "error with delete user.", error: err.message });
-    })
-})
-
-
-module.exports = router;
+const router=require('express').Router();
+const User=require('../models/user');
+const bcrypt=require('bcrypt');
+const jwt=require('jsonwebtoken');
+const {wrap}=require('../middleware/errors');
+const safe=u=>({_id:u._id,username:u.username,email:u.email,contact:u.contact,location:u.location});
+const session=u=>({user:safe(u),token:jwt.sign({id:String(u._id)},process.env.SECRET_KEY,{expiresIn:'1d'})});
+const validPassword=p=>typeof p==='string'&&p.length>=8&&Buffer.byteLength(p)<=72;
+router.post('/add',wrap(async(req,res)=>{const {username,contact,location,email,password}=req.body;if(typeof email!=='string'||!require('validator').isEmail(email)||!validPassword(password))return res.status(400).json({message:'Enter a valid email and a password of at least 8 characters (maximum 72 bytes).'});const u=await User.create({username,contact,location,email,password});res.status(201).json(session(u));}));
+router.post('/login',wrap(async(req,res)=>{const {email,password}=req.body;if(typeof email!=='string'||typeof password!=='string')return res.status(400).json({message:'Enter your email and password.'});const u=await User.findOne({email:email.trim().toLowerCase()}).select('+password');if(!u||!(await bcrypt.compare(password,u.password)))return res.status(401).json({message:'Email or password is incorrect.'});res.json(session(u));}));
+router.use(require('../middleware/auth'));
+router.get('/me',wrap(async(req,res)=>{const u=await User.findById(req.auth.id);if(!u)return res.status(401).json({message:'Account no longer exists.'});res.json({user:safe(u)});}));
+router.use('/:action/:id',(req,res,next)=>{if(req.params.id!==req.auth.id)return res.status(403).json({message:'You can only manage your own account.'});next();});
+router.get('/get/:id',wrap(async(req,res)=>res.json({user:await User.findById(req.auth.id)})));
+router.put('/update/:id',wrap(async(req,res)=>{const u=await User.findById(req.auth.id).select('+password');if(!u)return res.status(404).json({message:'Account not found.'});for(const f of ['username','contact','location'])if(req.body[f]!==undefined)u[f]=req.body[f];if(req.body.password){if(typeof req.body.currentPassword!=='string'||!(await bcrypt.compare(req.body.currentPassword,u.password)))return res.status(400).json({message:'Current password is incorrect.'});if(!validPassword(req.body.password))return res.status(400).json({message:'New password must contain at least 8 characters (maximum 72 bytes).'});u.password=req.body.password;}await u.save();res.json({user:safe(u),message:'Profile updated.'});}));
+router.delete('/delete/:id',wrap(async(req,res)=>{const u=await User.findById(req.auth.id).select('+password');if(!u||typeof req.body.password!=='string'||!(await bcrypt.compare(req.body.password,u.password)))return res.status(400).json({message:'Enter your current password to delete your account.'});await require('../models/booking').deleteMany({userID:u._id});await require('../models/feedback').deleteMany({userID:u._id});await u.deleteOne();res.json({message:'Account deleted.'});}));
+module.exports=router;
