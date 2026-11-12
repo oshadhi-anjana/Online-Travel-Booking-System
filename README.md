@@ -1,3 +1,7 @@
+# Deployment
+
+For a single Netlify deployment of both the frontend and API, follow [DEPLOY_NETLIFY.md](DEPLOY_NETLIFY.md). Render is not required. Payment slip limit: 4 MB.
+
 # Serandib Tours
 
 A React + Express + MongoDB travel application. Browse and filter six example Sri Lankan trips, create an account, reserve and cancel trips, update your profile and password, and publish or delete your own reviews.
@@ -45,7 +49,7 @@ Admins publish additional destinations from Admin → Destinations. These are st
 
 Admins do not see customer My bookings links; opening /bookings as an admin redirects to the admin workspace. Destination details show management navigation instead of the customer reservation form.
 
-Customers attach bank transfer evidence from My bookings → Attach payment slip. PNG, JPEG, and PDF files up to 5 MB are accepted and their file signatures are checked. Slips are stored as private binary data in the booking's MongoDB document, excluded from normal booking responses, and downloaded only through an authenticated owner/admin endpoint. An upload sets payment status to Under review, not Paid. Each active unpaid booking accepts one payment slip. After upload, the slip is locked: customers cannot edit or replace it. The backend atomically rejects repeat uploads. Admins download slips from the reservation card and verify the bank transfer before marking Paid. The application does not automatically verify bank transactions or issue refunds.
+Customers attach bank transfer evidence from My bookings → Attach payment slip. PNG, JPEG, and PDF files up to 4 MB are accepted and their file signatures are checked. Slips are stored as private binary data in the booking's MongoDB document, excluded from normal booking responses, and downloaded only through an authenticated owner/admin endpoint. An upload sets payment status to Under review, not Paid. Each active unpaid booking accepts one payment slip. After upload, the slip is locked: customers cannot edit or replace it. The backend atomically rejects repeat uploads. Admins download slips from the reservation card and verify the bank transfer before marking Paid. The application does not automatically verify bank transactions or issue refunds.
 
 ## Editing destinations
 

@@ -1,9 +1,24 @@
 [build]
-  base = "frontend"
-  command = "npm run build"
-  publish = "build"
+  base = "backend"
+  command = "npm ci && npm --prefix ../frontend ci && npm --prefix ../frontend run build"
+  publish = "../frontend/build"
+  functions = "netlify/functions"
 
-# React Router routes must resolve to the single-page application.
+[build.environment]
+  NODE_VERSION = "22"
+  REACT_APP_API_URL = "/api"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["bcrypt"]
+
+# The API rewrite must be evaluated before the React Router fallback.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

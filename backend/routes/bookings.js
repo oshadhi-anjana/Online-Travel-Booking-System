@@ -23,7 +23,7 @@ router.patch('/:id/cancel', wrap(async (req,res) => {
 }));
 router.put('/:id/payment-slip', express.raw({ type: () => true, limit: MAX_SLIP_BYTES }), wrap(async (req,res) => {
   const type = slipType(req.body);
-  if (!type) return res.status(400).json({ message: 'Attach a PNG, JPEG, or PDF payment slip up to 5 MB.' });
+  if (!type) return res.status(400).json({ message: 'Attach a PNG, JPEG, or PDF payment slip up to 4 MB.' });
   const slip = { name: `payment-slip-${req.params.id}.${type.extension}`, mime: type.mime, size: req.body.length, uploadedAt: new Date(), data: req.body };
   // Only the owner may submit evidence; uploading never confirms a payment.
   const booking = await Booking.findOneAndUpdate({ _id:req.params.id, userID:req.auth.id, status:{$in:['Reserved','Confirmed']}, paymentStatus:{$ne:'Paid'}, paymentSlip:{$exists:false} }, { $set:{ paymentSlip:slip, paymentStatus:'Under review' } }, { new:true, runValidators:true });

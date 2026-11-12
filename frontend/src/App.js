@@ -5,7 +5,7 @@ import catalog from './destinations.json';
 import Admin from './Admin';
 import PaymentSlip from './PaymentSlip';
 import {paymentChatUrl, redirectToPaymentChat} from './payment';
-const API=process.env.REACT_APP_API_URL||'http://localhost:8070';
+import API from './apiConfig';
 const Auth=createContext();
 const money=n=>'LKR '+Number(n).toLocaleString('en-LK');
 const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Colombo'});
