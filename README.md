@@ -31,4 +31,10 @@ The API tests use isolated model stubs and do not write to your Atlas database. 
 
 ## Bank payment via WhatsApp
 
-After a reservation is saved successfully, the browser redirects to WhatsApp number 0762042696 (international format +94762042696). A prepared message includes the booking reference, destination, date, traveller count, and server-calculated LKR total. The traveller sends the message to request bank details and arrange a transfer. Active reservations also have a Get bank payment details link in My bookings. Opening the chat does not send a message or mark a reservation paid. Bank transfer verification is handled manually by the tour operator.
+After a reservation is saved successfully, the browser redirects to WhatsApp number 07xxxxxxxx (international format +947xxxxxxxx). A prepared message includes the booking reference, destination, date, traveller count, and server-calculated LKR total. The traveller sends the message to request bank details and arrange a transfer. Active reservations also have a Get bank payment details link in My bookings. Opening the chat does not send a message or mark a reservation paid. Bank transfer verification is handled manually by the tour operator.
+
+## Admin dashboard
+
+Set ADMIN_EMAIL and ADMIN_PASSWORD only in ignored backend/.env. On backend startup the configured account is created (or promoted if it exists). Passwords are hashed. Startup does not overwrite an existing account password. To explicitly set/reset it to the configured password, run `npm run seed:admin` in backend. Sign in using the normal login page; admins land at /admin.
+
+The dashboard lists users, all bookings and reviews, supports searching, booking status updates, manual bank-payment verification (Pending/Paid), and review removal. The API checks the stored admin role on every request; registration/profile forms cannot set roles. Customers see updated booking and payment statuses. Cancellation does not refund bank transfers.
