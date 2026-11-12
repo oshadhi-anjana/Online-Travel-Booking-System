@@ -28,3 +28,7 @@ All prices are example prices in LKR. The server calculates totals from the cata
 Sessions expire after one day. Protected operations require a signed bearer token and enforce ownership. Password changes require the old password; deleting an account requires its password and removes associated bookings and reviews. Existing passwords remain compatible. Old localStorage sessions are replaced by the new sign-in flow.
 
 The API tests use isolated model stubs and do not write to your Atlas database. A complete live database smoke test still requires your working MongoDB connection. Before public production deployment, add TLS, request rate limiting, an operator workflow, payment/inventory integrations as needed, backup procedures, and deployment-specific secret management.
+
+## Bank payment via WhatsApp
+
+After a reservation is saved successfully, the browser redirects to WhatsApp number 0762042696 (international format +94762042696). A prepared message includes the booking reference, destination, date, traveller count, and server-calculated LKR total. The traveller sends the message to request bank details and arrange a transfer. Active reservations also have a Get bank payment details link in My bookings. Opening the chat does not send a message or mark a reservation paid. Bank transfer verification is handled manually by the tour operator.
